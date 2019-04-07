@@ -4,7 +4,7 @@ The main purpose of this project is to learn deployment.
 
 ## Build it yourself
 1. Copy the repostory and [install rust](https://www.rust-lang.org/tools/install)
-2. run `cargo run` in your terminal
+2. Run `cargo run` in your terminal
 
 ## Credits
-[background.jpeg](static/background.jpeg) - [Josh Spires](https://unsplash.com/@drone_nr)
+[background.jpeg](https://github.com/flofriday/click-server/blob/master/static/background.jpg) - [Josh Spires](https://unsplash.com/@drone_nr)
