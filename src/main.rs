@@ -14,6 +14,8 @@ use warp::{http::Response, Filter};
 
 type DB = Arc<Mutex<State>>;
 
+static SAVE_FILE: &str = "clicks.txt";
+
 struct State {
     clicks: u64,
     last_saved: DateTime<Local>,
@@ -24,11 +26,11 @@ impl State {
     /// Load the clicks from the file `clicks.txt`
     fn from_file() -> State {
         // Open the file or create if not exist
-        let mut file = match File::open("clicks.txt") {
+        let mut file = match File::open(SAVE_FILE) {
             Err(_) => {
                 // The file does not exist so create one
-                File::create("clicks.txt").expect("Unable to create the file clicks.txt");
-                File::open("clicks.txt").expect("Cannot open just created file.")
+                File::create(SAVE_FILE).expect("Unable to create the file clicks.txt");
+                File::open(SAVE_FILE).expect("Cannot open just created file.")
             }
             Ok(file) => file,
         };
@@ -54,7 +56,7 @@ impl State {
             > 10
         {
             self.last_saved = Local::now();
-            let mut file = File::create("clicks.txt")?;
+            let mut file = File::create(SAVE_FILE)?;
             file.write_all(&self.clicks.to_string().into_bytes())?;
         }
 
