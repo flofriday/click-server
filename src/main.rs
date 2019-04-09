@@ -3,14 +3,17 @@ extern crate flexi_logger;
 extern crate log;
 extern crate warp;
 
-use chrono::{DateTime, Local};
+use chrono::Local;
 use log::Record;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::net::ToSocketAddrs;
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use warp::{http::Response, Filter};
+use std::time::{Duration, Instant};
+use tokio::prelude::*;
+use tokio::timer::Interval;
+use warp::{http::Response, Filter, Future, Stream};
 
 type DB = Arc<Mutex<State>>;
 
@@ -18,7 +21,6 @@ static SAVE_FILE: &str = "clicks.txt";
 
 struct State {
     clicks: u64,
-    last_saved: DateTime<Local>,
 }
 
 impl State {
@@ -42,32 +44,20 @@ impl State {
 
         // Create the counter
         let counter: u64 = content.parse().unwrap_or(0);
-        State {
-            clicks: counter,
-            last_saved: Local::now(),
-        }
+        State { clicks: counter }
     }
     /// Save the clicks to the file `clicks.txt`
     fn to_file(&mut self) -> std::io::Result<()> {
-        // Check if 10s have passed since last save
-        if Local::now()
-            .signed_duration_since(self.last_saved)
-            .num_seconds()
-            > 10
-        {
-            self.last_saved = Local::now();
-            let mut file = File::create(SAVE_FILE)?;
-            file.write_all(&self.clicks.to_string().into_bytes())?;
-        }
-
-        Ok(())
+        let mut file = File::create(SAVE_FILE)?;
+        file.write_all(&self.clicks.to_string().into_bytes())
     }
 }
 
 fn main() {
     // Create a in memeory database
-    let db = Arc::new(Mutex::new(State::from_file()));
-    let db = warp::any().map(move || db.clone());
+    let db_raw = Arc::new(Mutex::new(State::from_file()));
+    let db_save_task = db_raw.clone();
+    let db_web = warp::any().map(move || db_raw.clone());
 
     // Initialise the logger
     flexi_logger::Logger::with_str("all")
@@ -79,15 +69,33 @@ fn main() {
     let index = warp::get2().and(warp::any().and(warp::fs::dir("static")));
 
     // GET /click => get the git counter and increment by one
-    let click = warp::get2().and(warp::path("click").and(db.clone().map(get_clicks_and_increment)));
+    let click =
+        warp::get2().and(warp::path("click").and(db_web.clone().map(get_clicks_and_increment)));
     let routes = click.or(index);
     let routes = routes.with(warp::log("all"));
+
+    // Create a background task that saves the clicks every 5s to a file
+    let save_task = Interval::new(Instant::now(), Duration::from_secs(5))
+        .for_each(move |_| {
+            match db_save_task.lock().unwrap().to_file() {
+                Err(e) => eprintln!("Unable to save clicks to file: {}", e),
+                _ => (),
+            }
+            Ok(())
+        })
+        .map_err(|e| panic!("interval errored; err={:?}", e));
 
     // Start the server
     let addr = "0.0.0.0:8000";
     println!("Server started at: {}", addr);
-    let mut addr_iter = addr.to_socket_addrs().unwrap();
-    warp::serve(routes).run(addr_iter.next().unwrap());
+    let addr: SocketAddr = addr.parse().unwrap();
+    let server = warp::serve(routes).bind(addr);
+
+    tokio::run(future::lazy(|| {
+        tokio::spawn(server);
+        tokio::spawn(save_task);
+        Ok(())
+    }));
 }
 
 /// Return a response with the current click. Also increment the counter by one.
