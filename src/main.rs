@@ -103,7 +103,6 @@ fn main() {
 fn get_clicks_and_increment(db: DB) -> impl warp::Reply {
     let mut state = db.lock().unwrap();
     state.clicks += 1;
-    state.to_file().unwrap(); // TODO check for error, dont panic
     Response::builder().body(state.clicks.to_string())
 }
 
