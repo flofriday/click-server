@@ -85,12 +85,13 @@ fn main() {
         })
         .map_err(|e| panic!("interval errored; err={:?}", e));
 
-    // Start the server
+    // Configure the server
     let addr = "0.0.0.0:8000";
     println!("Server started at: {}", addr);
     let addr: SocketAddr = addr.parse().unwrap();
     let server = warp::serve(routes).bind(addr);
 
+    // Start the runtime
     tokio::run(future::lazy(|| {
         tokio::spawn(server);
         tokio::spawn(save_task);
