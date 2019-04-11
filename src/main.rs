@@ -19,18 +19,19 @@ type DB = Arc<Mutex<State>>;
 
 static SAVE_FILE: &str = "clicks.txt";
 
+/// Saves the state of the webapp
 struct State {
     clicks: u64,
 }
 
 impl State {
-    // TODO: the path should not be hardcoded
     /// Load the clicks from the file `clicks.txt`
     fn from_file() -> State {
         // Open the file or create if not exist
         let mut file = match File::open(SAVE_FILE) {
             Err(_) => {
                 // The file does not exist so create one
+                print!("No save-file found, create new one");
                 File::create(SAVE_FILE).expect("Unable to create the file clicks.txt");
                 File::open(SAVE_FILE).expect("Cannot open just created file.")
             }
@@ -46,6 +47,7 @@ impl State {
         let counter: u64 = content.parse().unwrap_or(0);
         State { clicks: counter }
     }
+    //TODO: this should not be blocking, rewrite with futures
     /// Save the clicks to the file `clicks.txt`
     fn to_file(&mut self) -> std::io::Result<()> {
         let mut file = File::create(SAVE_FILE)?;
@@ -99,7 +101,7 @@ fn main() {
     }));
 }
 
-/// Return a response with the current click. Also increment the counter by one.
+/// Increment the counter by one and return that new value
 fn get_clicks_and_increment(db: DB) -> impl warp::Reply {
     let mut state = db.lock().unwrap();
     state.clicks += 1;
