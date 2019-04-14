@@ -1,5 +1,5 @@
 # select image
-FROM rust:1.33
+FROM rust:1.34
 
 # copy your source tree
 COPY ./ ./
