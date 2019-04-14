@@ -4,7 +4,7 @@ extern crate log;
 extern crate warp;
 
 use chrono::Local;
-use log::Record;
+use log::{error, info, warn, Record};
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -17,7 +17,7 @@ use warp::{http::Response, Filter, Future, Stream};
 
 type DB = Arc<Mutex<State>>;
 
-static SAVE_FILE: &str = "clicks.txt";
+static SAVE_FILE: &str = "dynamic/clicks.txt";
 
 /// Saves the state of the webapp
 struct State {
@@ -31,7 +31,7 @@ impl State {
         let mut file = match File::open(SAVE_FILE) {
             Err(_) => {
                 // The file does not exist so create one
-                print!("No save-file found, create new one");
+                warn!(target: "SERVER", "No save-file found, create new one");
                 File::create(SAVE_FILE).expect("Unable to create the file clicks.txt");
                 File::open(SAVE_FILE).expect("Cannot open just created file.")
             }
@@ -61,8 +61,8 @@ fn main() {
     let db_save_task = db_raw.clone();
     let db_web = warp::any().map(move || db_raw.clone());
 
-    // Initialise the logger
-    flexi_logger::Logger::with_str("all")
+    // Initialise the loggers
+    flexi_logger::Logger::with_str("WEB, SERVER")
         .format(custom_format)
         .start()
         .unwrap();
@@ -74,13 +74,13 @@ fn main() {
     let click =
         warp::get2().and(warp::path("click").and(db_web.clone().map(get_clicks_and_increment)));
     let routes = click.or(index);
-    let routes = routes.with(warp::log("all"));
+    let routes = routes.with(warp::log("WEB"));
 
     // Create a background task that saves the clicks every 5s to a file
     let save_task = Interval::new(Instant::now(), Duration::from_secs(5))
         .for_each(move |_| {
             match db_save_task.lock().unwrap().to_file() {
-                Err(e) => eprintln!("Unable to save clicks to file: {}", e),
+                Err(e) => error!(target: "SERVER", "Unable to save clicks to file: {}", e),
                 _ => (),
             }
             Ok(())
@@ -89,7 +89,7 @@ fn main() {
 
     // Configure the server
     let addr = "0.0.0.0:8000";
-    println!("Server started at: {}", addr);
+    info!(target: "SERVER", "Server started at: {}", addr);
     let addr: SocketAddr = addr.parse().unwrap();
     let server = warp::serve(routes).bind(addr);
 
@@ -113,8 +113,9 @@ fn get_clicks_and_increment(db: DB) -> impl warp::Reply {
 fn custom_format(w: &mut io::Write, record: &Record) -> Result<(), io::Error> {
     write!(
         w,
-        "[{}] {}",
+        "[{}] {} {}",
         Local::now().format("%Y-%m-%d %H:%M:%S %:z"),
+        &record.target(),
         &record.args()
     )
 }
@@ -122,9 +123,21 @@ fn custom_format(w: &mut io::Write, record: &Record) -> Result<(), io::Error> {
 /// Custom format for the logger for debug mode (less information)
 #[cfg(debug_assertions)]
 fn custom_format(w: &mut io::Write, record: &Record) -> Result<(), io::Error> {
-    let tmp: String = record.args().to_string();
-    let tmp: Vec<&str> = tmp.split('"').collect();
+    let out;
 
-    let out = format!("\"{}\" {} {}", tmp[1].trim(), tmp[2].trim(), tmp[6].trim());
+    if record.target() == "WEB" {
+        let tmp: String = record.args().to_string();
+        let tmp: Vec<&str> = tmp.split('"').collect();
+
+        // Prevent a panic by checking the length of the array
+        if tmp.len() >= 7 {
+            out = format!("\"{}\" {} {}", tmp[1].trim(), tmp[2].trim(), tmp[6].trim());
+        } else {
+            out = format!("{}", record.args());
+        }
+    } else {
+        out = format!("{}", record.args());
+    }
+
     write!(w, "[{}] {}", Local::now().format("%H:%M:%S"), out)
 }

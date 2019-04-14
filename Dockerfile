@@ -1,9 +1,9 @@
 # select image
-FROM rust:1.34
+FROM rust:1.34-slim
 
-# copy your source tree
+# copy your source tree (but not the dynamic folder, since it will be mounted with a bind mount)
 COPY ./ ./
-RUN rm click.txt
+RUN rm -r dynamic
 
 # build for release
 RUN cargo build --release
