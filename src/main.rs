@@ -4,6 +4,7 @@ extern crate log;
 extern crate warp;
 
 use chrono::Local;
+use flexi_logger::{Cleanup, Duplicate};
 use log::{error, info, warn, Record};
 use std::fs::File;
 use std::io;
@@ -61,8 +62,12 @@ fn main() {
     let db_save_task = db_raw.clone();
     let db_web = warp::any().map(move || db_raw.clone());
 
-    // Initialise the loggers
+    // Initialise the logger
     flexi_logger::Logger::with_str("WEB, SERVER")
+        .log_to_file()
+        .directory("dynamic/logs")
+        .rotate(50_000_000, Cleanup::KeepLogFiles(100))
+        .duplicate_to_stderr(Duplicate::All)
         .format(custom_format)
         .start()
         .unwrap();
