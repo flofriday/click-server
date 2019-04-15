@@ -8,10 +8,9 @@ The main purpose of this project is to learn deployment.
 3. Open [localhost:8000](http://localhost:8000) in your browser
 
 ## Run with docker
-1. Create a empty file on your system `touch clicks.txt`
-2. Build the image with `sudo docker build -t click-server .`
-3. Run the image with `sudo docker run -d --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/dynamic,target=/dynamic --name click-server1 click-server`
-4. Open [localhost:8000](http://localhost:8000) in your browser
+1. Build the image with `sudo docker build -t click-server .`
+2. Run the image with `sudo docker run -d --rm -p 8000:8000 --mount type=bind,source="$(pwd)"/dynamic,target=/dynamic --name click-server1 click-server`
+3. Open [localhost:8000](http://localhost:8000) in your browser
 
 ## Credits
 [background.jpeg](https://github.com/flofriday/click-server/blob/master/static/background.jpg) - [Josh Spires](https://unsplash.com/@drone_nr)
