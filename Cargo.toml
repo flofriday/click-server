@@ -5,6 +5,7 @@ authors = ["flo"]
 edition = "2018"
 
 [dependencies]
+rand = "*"
 warp = "0.1.14"
 log = "*"
 chrono = "*"

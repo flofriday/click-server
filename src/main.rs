@@ -6,6 +6,7 @@ extern crate warp;
 use chrono::Local;
 use flexi_logger::{Cleanup, Duplicate};
 use log::{error, info, warn, Record};
+use rand::Rng;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -14,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::prelude::*;
 use tokio::timer::Interval;
-use warp::{http::Response, Filter, Future, Stream};
+use warp::{http::Response, http::Uri, Filter, Future, Stream};
 
 type DB = Arc<Mutex<State>>;
 
@@ -78,7 +79,14 @@ fn main() {
     // GET /click => get the git counter and increment by one
     let click =
         warp::get2().and(warp::path("click").and(db_web.clone().map(get_clicks_and_increment)));
-    let routes = click.or(index);
+
+    // Get /background.jpg => redirect to one of the images
+    let background_image = warp::get2()
+        .and(warp::path("background.jpg"))
+        .map(get_backgroundimage);
+
+    // Combine all routes
+    let routes = click.or(background_image).or(index);
     let routes = routes.with(warp::log("WEB"));
 
     // Create a background task that saves the clicks every 5s to a file
@@ -111,6 +119,17 @@ fn get_clicks_and_increment(db: DB) -> impl warp::Reply {
     let mut state = db.lock().unwrap();
     state.clicks += 1;
     Response::builder().body(state.clicks.to_string())
+}
+
+// TODO: This function should not be hardcoded for 3 images, but instead detect the
+// amount somehow
+/// Generates a random number between 1 and 3 and redirect to one of the 3 background
+/// images
+fn get_backgroundimage() -> impl warp::Reply {
+    let mut rng = rand::thread_rng();
+    let random: u8 = rng.gen_range(1, 4);
+    let uri = format!("/background{}.jpg", random).parse::<Uri>().unwrap();
+    warp::redirect(uri)
 }
 
 /// Custom format for the logger for release mode (more information)

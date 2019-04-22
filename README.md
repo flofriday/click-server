@@ -13,4 +13,6 @@ The main purpose of this project is to learn deployment.
 3. Open [localhost:8000](http://localhost:8000) in your browser
 
 ## Credits
-[background.jpeg](https://github.com/flofriday/click-server/blob/master/static/background.jpg) - [Josh Spires](https://unsplash.com/@drone_nr)
+[background1.jpg](https://github.com/flofriday/click-server/blob/master/static/background1.jpg) - [Josh Spires](https://unsplash.com/@drone_nr)
+[background2.jpg](https://github.com/flofriday/click-server/blob/master/static/background2.jpg) - [Thom Schneider](https://unsplash.com/@thomschneider)
+[background3.jpg](https://github.com/flofriday/click-server/blob/master/static/background3.jpg) - [Agung Pratamah](https://unsplash.com/@masaagungg)
