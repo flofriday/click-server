@@ -127,8 +127,10 @@ fn get_clicks_and_increment(db: DB) -> impl warp::Reply {
 /// images
 fn get_backgroundimage() -> impl warp::Reply {
     let mut rng = rand::thread_rng();
-    let random: u8 = rng.gen_range(1, 4);
-    let uri = format!("/background{}.jpg", random).parse::<Uri>().unwrap();
+    let random: u8 = rng.gen_range(0, 8);
+    let uri = format!("/background{}.jpg", random + 1)
+        .parse::<Uri>()
+        .unwrap();
     warp::redirect(uri)
 }
 
