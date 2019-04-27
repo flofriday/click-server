@@ -41,8 +41,16 @@
 		function getClicks() {
 			var xmlHttp = new XMLHttpRequest();
     	xmlHttp.open( "GET", "click", false ); // false for synchronous request
+
+    	// Catch the network exception and display a simple error
+    	try {
     	xmlHttp.send( null );
-    	console.log(xmlHttp);
+		}
+		catch (e) {
+			alert("I am so sorry, but it seams like you lost the connection to the server.");
+			return;
+		}
+
     	result = xmlHttp.responseText;
 
     	// Change the document
